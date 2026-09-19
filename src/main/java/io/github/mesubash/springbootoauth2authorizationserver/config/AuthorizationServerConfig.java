@@ -7,8 +7,10 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -22,7 +24,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
@@ -106,7 +108,11 @@ public class AuthorizationServerConfig {
     //RegisteredClientRepository -> PostgreSQL.
 
     @Bean
-    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder, TokenSettings tokenSettings) {
+    @DependsOn("flyway")
+    public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate,PasswordEncoder passwordEncoder, TokenSettings tokenSettings) {
+        JdbcRegisteredClientRepository repository =
+                new JdbcRegisteredClientRepository(jdbcTemplate);
+
         RegisteredClient client = RegisteredClient
                 .withId(UUID.randomUUID().toString())
                 .clientId("demo-client")
@@ -141,7 +147,11 @@ public class AuthorizationServerConfig {
                 .tokenSettings(tokenSettings)
 
                 .build();
-        return new InMemoryRegisteredClientRepository(client);
+        if (repository.findByClientId(client.getClientId()) == null) {
+            repository.save(client);
+        }
+
+        return repository;
     }
 
     // dev RSA signing key
