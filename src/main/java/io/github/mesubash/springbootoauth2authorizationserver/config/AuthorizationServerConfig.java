@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -36,6 +37,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Duration;
 import java.util.UUID;
 
 @Configuration(proxyBeanMethods = false)
@@ -104,7 +106,7 @@ public class AuthorizationServerConfig {
     //RegisteredClientRepository -> PostgreSQL.
 
     @Bean
-    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder) {
+    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder, TokenSettings tokenSettings) {
         RegisteredClient client = RegisteredClient
                 .withId(UUID.randomUUID().toString())
                 .clientId("demo-client")
@@ -136,6 +138,7 @@ public class AuthorizationServerConfig {
                                 .requireAuthorizationConsent(true)
                                 .build()
                 )
+                .tokenSettings(tokenSettings)
 
                 .build();
         return new InMemoryRegisteredClientRepository(client);
@@ -193,7 +196,9 @@ public class AuthorizationServerConfig {
     //config of this authorization server itself
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
-        return AuthorizationServerSettings.builder().build();
+        return AuthorizationServerSettings.builder()
+                .issuer("http://localhost:9000")
+                .build();
     }
 
 
@@ -202,5 +207,14 @@ public class AuthorizationServerConfig {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
+    @Bean
+    public TokenSettings tokenSettings(){
+        return TokenSettings.builder()
+                .authorizationCodeTimeToLive(Duration.ofMinutes(5))
+                .accessTokenTimeToLive(Duration.ofMinutes(15))
+                .refreshTokenTimeToLive(Duration.ofDays(30))
+                .reuseRefreshTokens(false)
+                .build();
+    }
 
 }
