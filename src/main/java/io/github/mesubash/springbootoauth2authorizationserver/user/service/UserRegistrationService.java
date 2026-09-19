@@ -3,17 +3,16 @@ package io.github.mesubash.springbootoauth2authorizationserver.user.service;
 
 import java.util.Locale;
 
+import io.github.mesubash.springbootoauth2authorizationserver.common.exception.ResourceConflictException;
 import io.github.mesubash.springbootoauth2authorizationserver.user.dto.RegisterUserRequest;
 import io.github.mesubash.springbootoauth2authorizationserver.user.dto.UserResponse;
 import io.github.mesubash.springbootoauth2authorizationserver.user.entity.RoleEntity;
 import io.github.mesubash.springbootoauth2authorizationserver.user.entity.UserEntity;
 import io.github.mesubash.springbootoauth2authorizationserver.user.repository.RoleRepository;
 import io.github.mesubash.springbootoauth2authorizationserver.user.repository.UserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserRegistrationService {
@@ -42,15 +41,13 @@ public class UserRegistrationService {
                 .toLowerCase(Locale.ROOT);
 
         if (userRepository.existsByUsername(username)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
+            throw new ResourceConflictException(
                     "Username is already registered"
             );
         }
 
         if (userRepository.existsByEmail(email)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
+            throw new ResourceConflictException(
                     "Email is already registered"
             );
         }
