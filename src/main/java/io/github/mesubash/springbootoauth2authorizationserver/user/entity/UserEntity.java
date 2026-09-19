@@ -27,6 +27,15 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(name = "account_non_expired", nullable = false)
+    private boolean accountNonExpired = true;
+
+    @Column(name = "account_non_locked", nullable = false)
+    private boolean accountNonLocked = true;
+
+    @Column(name = "credentials_non_expired", nullable = false)
+    private boolean credentialsNonExpired = true;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -94,5 +103,27 @@ public class UserEntity {
 
     public Set<RoleEntity> getRoles() {
         return roles;
+    }
+    public boolean isAccountNonExpired() {
+        return accountNonExpired;
+    }
+
+    public boolean isAccountNonLocked() {
+        return accountNonLocked;
+    }
+
+    public boolean isCredentialsNonExpired() {
+        return credentialsNonExpired;
+    }
+    public void setAccountNonExpired(boolean accountNonExpired) {
+        this.accountNonExpired = accountNonExpired;
+    }
+
+    public void setAccountNonLocked(boolean accountNonLocked) {
+        this.accountNonLocked = accountNonLocked;
+    }
+
+    public void setCredentialsNonExpired(boolean credentialsNonExpired) {
+        this.credentialsNonExpired = credentialsNonExpired;
     }
 }

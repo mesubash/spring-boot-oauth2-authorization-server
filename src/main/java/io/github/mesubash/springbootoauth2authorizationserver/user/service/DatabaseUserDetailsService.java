@@ -26,7 +26,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
                 .findByUsername(username)
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
-                                "User not found: " + username
+                                "Invalid username or email"
                         )
                 );
 
@@ -44,6 +44,9 @@ public class DatabaseUserDetailsService implements UserDetailsService {
                 .password(user.getPassword())
                 .authorities(authorities)
                 .disabled(!user.isEnabled())
+                .accountExpired(!user.isAccountNonExpired())
+                .accountLocked(!user.isAccountNonLocked())
+                .credentialsExpired(!user.isCredentialsNonExpired())
                 .build();
     }
 }

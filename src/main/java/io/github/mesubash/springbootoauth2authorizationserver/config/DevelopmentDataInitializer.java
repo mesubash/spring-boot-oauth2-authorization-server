@@ -51,6 +51,9 @@ public class DevelopmentDataInitializer implements ApplicationRunner {
                     passwordEncoder.encode("password")
             );
             user.setEnabled(true);
+            user.setAccountNonExpired(true);
+            user.setAccountNonLocked(true);
+            user.setCredentialsNonExpired(true);
 
             user.getRoles().add(userRole);
 
