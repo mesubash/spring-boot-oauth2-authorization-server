@@ -48,32 +48,59 @@ public class DevelopmentDataInitializer implements ApplicationRunner {
 
         RoleEntity userRole = roleRepository
                 .findByName("USER")
-                .orElseGet(() -> {
-                    RoleEntity role = new RoleEntity();
-                    role.setName("USER");
-                    role.setDescription("Default user role");
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "USER role is not configured"
+                        )
+                );
+        RoleEntity adminRole = roleRepository
+                .findByName("ADMIN")
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "ADMIN role is not configured"
+                        )
+                );
 
-                    return roleRepository.save(role);
+        UserEntity user = userRepository
+                .findByUsername("user")
+                .orElseGet(() -> {
+
+                    UserEntity newUser = new UserEntity();
+
+                    newUser.setUsername("user");
+                    newUser.setEmail("user@example.com");
+                    newUser.setPassword(
+                            passwordEncoder.encode("password")
+                    );
+
+                    newUser.setEnabled(true);
+                    newUser.setAccountNonExpired(true);
+                    newUser.setAccountNonLocked(true);
+                    newUser.setCredentialsNonExpired(true);
+
+                    return newUser;
                 });
 
-        if (userRepository.findByUsername("user").isEmpty()) {
+        boolean rolesChanged = false;
 
-            UserEntity user = new UserEntity();
-
-            user.setUsername("user");
-            user.setEmail("user@example.com");
-            user.setPassword(
-                    passwordEncoder.encode("password")
-            );
-            user.setEnabled(true);
-            user.setAccountNonExpired(true);
-            user.setAccountNonLocked(true);
-            user.setCredentialsNonExpired(true);
+        if (user.getRoles()
+                .stream()
+                .noneMatch(role -> role.getName().equals("USER"))) {
 
             user.getRoles().add(userRole);
+            rolesChanged = true;
+        }
 
+        if (user.getRoles()
+                .stream()
+                .noneMatch(role -> role.getName().equals("ADMIN"))) {
+
+            user.getRoles().add(adminRole);
+            rolesChanged = true;
+        }
+
+        if (user.getId() == null || rolesChanged) {
             userRepository.save(user);
-            initializeDemoClient();
         }
     }
 
