@@ -106,49 +106,10 @@ public class AuthorizationServerConfig {
 
     @Bean
     @DependsOn("flyway")
-    public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate,PasswordEncoder passwordEncoder, TokenSettings tokenSettings) {
-        JdbcRegisteredClientRepository repository =
-                new JdbcRegisteredClientRepository(jdbcTemplate);
-
-        RegisteredClient client = RegisteredClient
-                .withId(UUID.randomUUID().toString())
-                .clientId("demo-client")
-                .clientSecret(passwordEncoder.encode("demo-secret"))
-                .clientAuthenticationMethod(
-                        ClientAuthenticationMethod.CLIENT_SECRET_BASIC
-                )
-                .authorizationGrantType(
-                        AuthorizationGrantType.AUTHORIZATION_CODE
-                )
-                .authorizationGrantType(
-                        AuthorizationGrantType.REFRESH_TOKEN
-                )
-
-                .redirectUri(
-                        "http://127.0.0.1:8081/callback"
-                )
-                .postLogoutRedirectUri(
-                        "http://127.0.0.1:8081"
-                )
-
-                .scope(OidcScopes.OPENID)
-                .scope(OidcScopes.PROFILE)
-                .scope("read")
-                .scope("write")
-                .clientSettings(
-                        ClientSettings.builder()
-                                .requireProofKey(true)
-                                .requireAuthorizationConsent(true)
-                                .build()
-                )
-                .tokenSettings(tokenSettings)
-
-                .build();
-        if (repository.findByClientId(client.getClientId()) == null) {
-            repository.save(client);
-        }
-
-        return repository;
+    public RegisteredClientRepository registeredClientRepository(
+            JdbcTemplate jdbcTemplate
+    ) {
+        return new JdbcRegisteredClientRepository(jdbcTemplate);
     }
 
     @Bean
