@@ -5,9 +5,11 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import io.github.mesubash.springbootoauth2authorizationserver.security.PemKeyLoader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -119,24 +121,43 @@ public class AuthorizationServerConfig {
         return new JdbcOAuth2AuthorizationService(jdbcTemplate, registeredClientRepository);
     }
 
-    // dev RSA signing key
-    // a new key pair generated every application restart
-
-    //later: we will replace this with persistent key management
     @Bean
-    public JWKSource<SecurityContext> jwkSource() {
+    @Profile("!test")
+    public JWKSource<SecurityContext> persistentJwkSource(
+            PemKeyLoader pemKeyLoader,
+            AuthorizationServerKeyProperties keyProperties
+    ) {
+
+        RSAKey rsaKey = pemKeyLoader.load(
+                keyProperties.getPrivateKey(),
+                keyProperties.getPublicKey()
+        );
+
+        return new ImmutableJWKSet<>(
+                new JWKSet(rsaKey)
+        );
+    }
+    @Bean
+    @Profile("test")
+    public JWKSource<SecurityContext> testJwkSource() {
+
         KeyPair keyPair = generateRsaKey();
-        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
 
-        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
+        RSAPublicKey publicKey =
+                (RSAPublicKey) keyPair.getPublic();
 
-        RSAKey rsaKey = new RSAKey.Builder(publicKey)
-                .privateKey(privateKey)
-                .keyID(UUID.randomUUID().toString())
-                .build();
+        RSAPrivateKey privateKey =
+                (RSAPrivateKey) keyPair.getPrivate();
 
-        JWKSet jwkSet = new JWKSet(rsaKey);
-        return new ImmutableJWKSet<>(jwkSet);
+        RSAKey rsaKey =
+                new RSAKey.Builder(publicKey)
+                        .privateKey(privateKey)
+                        .keyID(UUID.randomUUID().toString())
+                        .build();
+
+        return new ImmutableJWKSet<>(
+                new JWKSet(rsaKey)
+        );
     }
 
     private static KeyPair generateRsaKey() {
