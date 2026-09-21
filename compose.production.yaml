@@ -1,0 +1,76 @@
+services:
+
+  postgres:
+    image: postgres:17
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DB_NAME:-oauth2_authorization_server}
+      POSTGRES_USER: ${DB_USERNAME:-oauth2}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be configured}
+
+    volumes:
+      - postgres_production_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME:-oauth2} -d ${DB_NAME:-oauth2_authorization_server}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - auth_network
+
+
+  authorization-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+
+      SPRING_PROFILES_ACTIVE: prod
+
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-oauth2_authorization_server}
+      DB_USERNAME: ${DB_USERNAME:-oauth2}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      AUTHORIZATION_SERVER_ISSUER: ${AUTHORIZATION_SERVER_ISSUER:-http://localhost:9000}
+
+      AUTHORIZATION_SERVER_CORS_ALLOWED_ORIGINS: ${AUTHORIZATION_SERVER_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+
+      LOGIN_MAX_FAILED_ATTEMPTS: ${LOGIN_MAX_FAILED_ATTEMPTS:-5}
+      LOGIN_LOCK_DURATION: ${LOGIN_LOCK_DURATION:-15m}
+
+      AUTHORIZATION_SERVER_KEYS_PRIVATE_KEY: file:/app/keys/private.pem
+      AUTHORIZATION_SERVER_KEYS_PUBLIC_KEY: file:/app/keys/public.pem
+
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75}
+
+    volumes:
+      - ./.local/keys:/app/keys:ro
+
+    ports:
+      - "9000:9000"
+
+    networks:
+      - auth_network
+
+
+volumes:
+  postgres_production_data:
+
+
+networks:
+  auth_network:
