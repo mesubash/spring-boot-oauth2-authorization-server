@@ -284,7 +284,9 @@ public class AuthorizationServerConfig {
         http
                 .securityMatcher(
                         "/api/v1/clients",
-                        "/api/v1/clients/**"
+                        "/api/v1/clients/**",
+                        "/api/v1/scopes",
+                        "/api/v1/scopes/**"
                 )
 
                 .authorizeHttpRequests(authorize ->

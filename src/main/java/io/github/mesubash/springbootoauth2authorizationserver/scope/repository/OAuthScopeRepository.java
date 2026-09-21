@@ -18,4 +18,5 @@ public interface OAuthScopeRepository
     List<OAuthScopeEntity> findAllByNameInAndEnabledTrue(
             Collection<String> names
     );
+    List<OAuthScopeEntity> findAllByOrderByNameAsc();
 }
