@@ -9,6 +9,7 @@ import io.github.mesubash.springbootoauth2authorizationserver.client.model.OAuth
 import io.github.mesubash.springbootoauth2authorizationserver.client.repository.OAuthClientManagementRepository;
 import io.github.mesubash.springbootoauth2authorizationserver.common.exception.InvalidRequestException;
 import io.github.mesubash.springbootoauth2authorizationserver.common.exception.ResourceNotFoundException;
+import io.github.mesubash.springbootoauth2authorizationserver.scope.service.OAuthScopeService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -34,12 +35,14 @@ public class OAuthClientService {
     private final PasswordEncoder passwordEncoder;
     private final TokenSettings tokenSettings;
     private final OAuthClientManagementRepository managementRepository;
+    private final OAuthScopeService scopeService;
 
     public OAuthClientService(
             RegisteredClientRepository registeredClientRepository,
             PasswordEncoder passwordEncoder,
             TokenSettings tokenSettings,
-            OAuthClientManagementRepository managementRepository
+            OAuthClientManagementRepository managementRepository,
+            OAuthScopeService scopeService
     ) {
         this.registeredClientRepository =
                 registeredClientRepository;
@@ -47,6 +50,7 @@ public class OAuthClientService {
         this.passwordEncoder = passwordEncoder;
         this.tokenSettings = tokenSettings;
         this.managementRepository = managementRepository;
+        this.scopeService = scopeService;
     }
 
     public OAuthClientCreatedResponse create(
@@ -55,6 +59,11 @@ public class OAuthClientService {
 
         String clientId =
                 UUID.randomUUID().toString();
+
+        Set<String> scopes =
+                scopeService.validateAndNormalize(
+                        request.scopes()
+                );
 
         String rawClientSecret = null;
 
@@ -112,8 +121,7 @@ public class OAuthClientService {
                     .forEach(builder::postLogoutRedirectUri);
         }
 
-        request.scopes()
-                .forEach(builder::scope);
+        scopes.forEach(builder::scope);
 
         builder.clientSettings(
                 ClientSettings.builder()
@@ -219,6 +227,12 @@ public class OAuthClientService {
         RegisteredClient existing =
                 getRegisteredClient(clientId);
 
+        Set<String> scopes =
+                scopeService.validateAndNormalize(
+                        request.scopes()
+                );
+
+
         RegisteredClient updated =
                 RegisteredClient
                         .from(existing)
@@ -244,10 +258,10 @@ public class OAuthClientService {
                             }
                         })
 
-                        .scopes(scopes -> {
-                            scopes.clear();
-                            scopes.addAll(
-                                    request.scopes()
+                        .scopes(currentScopes -> {
+                            currentScopes.clear();
+                            currentScopes.addAll(
+                                    scopes
                             );
                         })
 

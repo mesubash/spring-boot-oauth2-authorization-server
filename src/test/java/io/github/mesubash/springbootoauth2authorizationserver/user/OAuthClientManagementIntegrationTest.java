@@ -125,4 +125,51 @@ class OAuthClientManagementIntegrationTest {
                         status().isForbidden()
                 );
     }
+    @Test
+    void shouldRejectUnknownOAuthScope()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/v1/clients")
+
+                                .with(
+                                        jwt().authorities(
+                                                new SimpleGrantedAuthority(
+                                                        "ROLE_ADMIN"
+                                                )
+                                        )
+                                )
+
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+
+                                .content("""
+                                    {
+                                      "clientName": "Invalid Scope Client",
+                                      "clientType": "CONFIDENTIAL",
+                                      "redirectUris": [
+                                        "http://127.0.0.1:3000/callback"
+                                      ],
+                                      "scopes": [
+                                        "openid",
+                                        "read",
+                                        "unknown-scope"
+                                      ],
+                                      "requireAuthorizationConsent": true
+                                    }
+                                    """)
+                )
+
+                .andExpect(
+                        status().isBadRequest()
+                )
+
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "Unknown or disabled OAuth scopes: unknown-scope"
+                                )
+                );
+    }
 }
