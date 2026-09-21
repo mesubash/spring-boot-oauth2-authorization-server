@@ -75,6 +75,15 @@ public class UserAdminService {
         user.setAccountNonLocked(
                 request.accountNonLocked()
         );
+        /*
+         * Any explicit admin lock/unlock clears
+         * temporary lockout state.
+         *
+         * accountNonLocked=false + lockedUntil=null
+         * therefore represents a manual lock.
+         */
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
 
         user.setCredentialsNonExpired(
                 request.credentialsNonExpired()
@@ -193,6 +202,8 @@ public class UserAdminService {
                 user.isAccountNonExpired(),
                 user.isAccountNonLocked(),
                 user.isCredentialsNonExpired(),
+                user.getFailedLoginAttempts(),
+                user.getLockedUntil(),
 
                 roles
         );

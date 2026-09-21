@@ -12,9 +12,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class DatabaseUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
+    private final LoginAttemptService loginAttemptService;
 
-    public DatabaseUserDetailsService(UserRepository userRepository) {
+    public DatabaseUserDetailsService(UserRepository userRepository, LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
+        this.loginAttemptService = loginAttemptService;
     }
 
 
@@ -23,12 +25,17 @@ public class DatabaseUserDetailsService implements UserDetailsService {
             throws UsernameNotFoundException {
 
         UserEntity user = userRepository
-                .findByUsername(username)
+                .findByUsernameOrEmail(
+                        username,
+                        username
+                )
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
                                 "Invalid username or email"
                         )
                 );
+        user = loginAttemptService
+                .releaseExpiredTemporaryLock(user);
 
         var authorities = user.getRoles()
                 .stream()

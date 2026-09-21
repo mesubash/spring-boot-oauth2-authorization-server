@@ -17,3 +17,10 @@ spring:
 
 server:
   port: 9000
+
+
+authorization-server:
+  security:
+    login:
+      max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
+      lock-duration: ${LOGIN_LOCK_DURATION:15m}
