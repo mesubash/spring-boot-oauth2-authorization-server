@@ -286,7 +286,10 @@ public class AuthorizationServerConfig {
                         "/api/v1/clients",
                         "/api/v1/clients/**",
                         "/api/v1/scopes",
-                        "/api/v1/scopes/**"
+                        "/api/v1/scopes/**",
+                        "/api/v1/users",
+                        "/api/v1/users/**"
+
                 )
 
                 .authorizeHttpRequests(authorize ->
