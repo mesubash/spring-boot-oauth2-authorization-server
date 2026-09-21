@@ -8,6 +8,7 @@ import com.nimbusds.jose.proc.SecurityContext;
 import io.github.mesubash.springbootoauth2authorizationserver.security.ActiveAuthorizationFilter;
 import io.github.mesubash.springbootoauth2authorizationserver.security.PemKeyLoader;
 import io.github.mesubash.springbootoauth2authorizationserver.user.service.OidcUserClaimsService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -39,12 +40,16 @@ import org.springframework.security.oauth2.server.resource.web.authentication.Be
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -62,7 +67,9 @@ public class AuthorizationServerConfig {
                 .oauth2AuthorizationServer(authorizationServer -> {
                     http.securityMatcher(
                             authorizationServer.getEndpointsMatcher()
-                    );
+                    )
+                            .cors(Customizer.withDefaults()
+                            );
 
                     authorizationServer
                             .oidc(Customizer.withDefaults());
@@ -92,6 +99,7 @@ public class AuthorizationServerConfig {
                 .csrf(csrf ->
                         csrf.ignoringRequestMatchers("/api/v1/auth/register")
                 )
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
                     authorize
                         .requestMatchers(
@@ -196,9 +204,12 @@ public class AuthorizationServerConfig {
 
     //config of this authorization server itself
     @Bean
-    public AuthorizationServerSettings authorizationServerSettings() {
+    public AuthorizationServerSettings authorizationServerSettings(
+            @Value("${authorization-server.issuer}")
+            String issuer
+    ) {
         return AuthorizationServerSettings.builder()
-                .issuer("http://localhost:9000")
+                .issuer(issuer)
                 .build();
     }
 
@@ -340,6 +351,7 @@ public class AuthorizationServerConfig {
                 .csrf(csrf ->
                         csrf.disable()
                 )
+                .cors(Customizer.withDefaults())
                 .addFilterAfter(
                         new ActiveAuthorizationFilter(
                                 authorizationService
@@ -356,6 +368,62 @@ public class AuthorizationServerConfig {
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(
+            AuthorizationServerCorsProperties properties
+    ) {
+
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        configuration.setAllowedOrigins(
+                properties.getAllowedOrigins()
+        );
+
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        configuration.setAllowedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept"
+                )
+        );
+
+        configuration.setExposedHeaders(
+                List.of(
+                        "Location"
+                )
+        );
+
+        /*
+         * We are not designing cross-origin cookie/session
+         * authentication for APIs.
+         */
+        configuration.setAllowCredentials(false);
+
+        configuration.setMaxAge(3600L);
+
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
+        return source;
     }
 
 

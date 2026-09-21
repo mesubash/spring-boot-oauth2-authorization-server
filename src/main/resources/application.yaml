@@ -17,6 +17,7 @@ spring:
 
 server:
   port: 9000
+  forward-headers-strategy: framework
 
 
 authorization-server:
@@ -24,3 +25,7 @@ authorization-server:
     login:
       max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
       lock-duration: ${LOGIN_LOCK_DURATION:15m}
+
+  issuer: ${AUTHORIZATION_SERVER_ISSUER:http://localhost:9000}
+  cors:
+    allowed-origins: ${AUTHORIZATION_SERVER_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
