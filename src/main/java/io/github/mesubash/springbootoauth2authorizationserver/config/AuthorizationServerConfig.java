@@ -288,12 +288,15 @@ public class AuthorizationServerConfig {
                         "/api/v1/scopes",
                         "/api/v1/scopes/**",
                         "/api/v1/users",
-                        "/api/v1/users/**"
+                        "/api/v1/users/**",
+                        "/api/v1/account/**"
 
                 )
 
                 .authorizeHttpRequests(authorize ->
                         authorize
+                                .requestMatchers("/api/v1/account/**")
+                                .authenticated()
                                 .anyRequest()
                                 .hasRole("ADMIN")
                 )
