@@ -102,6 +102,8 @@ public class DevelopmentDataInitializer implements ApplicationRunner {
         if (user.getId() == null || rolesChanged) {
             userRepository.save(user);
         }
+
+        initializeDemoClient();
     }
 
     private void initializeDemoClient() {
