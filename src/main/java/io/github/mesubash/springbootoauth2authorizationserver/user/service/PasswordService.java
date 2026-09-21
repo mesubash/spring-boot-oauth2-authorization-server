@@ -2,6 +2,7 @@ package io.github.mesubash.springbootoauth2authorizationserver.user.service;
 
 import java.util.UUID;
 
+import io.github.mesubash.springbootoauth2authorizationserver.audit.service.SecurityAuditService;
 import io.github.mesubash.springbootoauth2authorizationserver.common.exception.InvalidCredentialsException;
 import io.github.mesubash.springbootoauth2authorizationserver.common.exception.InvalidRequestException;
 import io.github.mesubash.springbootoauth2authorizationserver.common.exception.ResourceNotFoundException;
@@ -19,15 +20,18 @@ public class PasswordService {
     private final UserRepository userRepository;
     private final UserSecurityRepository userSecurityRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SecurityAuditService auditService;
 
     public PasswordService(
             UserRepository userRepository,
             UserSecurityRepository userSecurityRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            SecurityAuditService auditService
     ) {
         this.userRepository = userRepository;
         this.userSecurityRepository = userSecurityRepository;
         this.passwordEncoder = passwordEncoder;
+        this.auditService = auditService;
     }
 
 
@@ -71,6 +75,13 @@ public class PasswordService {
                 user,
                 newPassword
         );
+        auditService.record(
+                "PASSWORD_CHANGED",
+                "USER",
+                user.getId().toString(),
+                "SUCCESS",
+                null
+        );
     }
 
 
@@ -103,6 +114,13 @@ public class PasswordService {
                 user,
                 newPassword
         );
+        auditService.record(
+                "PASSWORD_RESET_BY_ADMIN",
+                "USER",
+                user.getId().toString(),
+                "SUCCESS",
+                null
+        );
     }
 
 
@@ -118,6 +136,7 @@ public class PasswordService {
         user.setCredentialsNonExpired(true);
 
         userRepository.save(user);
+
 
         userSecurityRepository
                 .deleteAuthorizationsByPrincipalName(

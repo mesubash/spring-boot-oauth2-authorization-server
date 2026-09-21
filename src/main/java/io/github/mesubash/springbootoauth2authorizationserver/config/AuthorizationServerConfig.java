@@ -102,6 +102,11 @@ public class AuthorizationServerConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
                     authorize
+                            .requestMatchers(
+                                    "/actuator/health",
+                                    "/actuator/health/**"
+                            )
+                            .permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/auth/register"
@@ -336,7 +341,10 @@ public class AuthorizationServerConfig {
                         "/api/v1/scopes/**",
                         "/api/v1/users",
                         "/api/v1/users/**",
-                        "/api/v1/account/**"
+                        "/api/v1/account/**",
+                        "/api/v1/audit-events",
+                        "/api/v1/audit-events/**"
+
 
                 )
 

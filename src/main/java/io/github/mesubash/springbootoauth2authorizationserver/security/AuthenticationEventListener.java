@@ -1,5 +1,6 @@
 package io.github.mesubash.springbootoauth2authorizationserver.security;
 
+import io.github.mesubash.springbootoauth2authorizationserver.audit.service.SecurityAuditService;
 import io.github.mesubash.springbootoauth2authorizationserver.user.service.LoginAttemptService;
 import org.springframework.context.event.EventListener;
 
@@ -14,12 +15,16 @@ import org.springframework.stereotype.Component;
 public class AuthenticationEventListener {
 
     private final LoginAttemptService loginAttemptService;
+    private final SecurityAuditService auditService;
 
     public AuthenticationEventListener(
-            LoginAttemptService loginAttemptService
+            LoginAttemptService loginAttemptService,
+            SecurityAuditService auditService
     ) {
         this.loginAttemptService =
                 loginAttemptService;
+        this.auditService =
+                auditService;
     }
 
 
@@ -36,6 +41,14 @@ public class AuthenticationEventListener {
         loginAttemptService.recordFailedLogin(
                 event.getAuthentication().getName()
         );
+        auditService.record(
+                "LOGIN_FAILURE",
+                event.getAuthentication().getName(),
+                "USER",
+                null,
+                "FAILURE",
+                "Invalid credentials"
+        );
     }
 
 
@@ -51,6 +64,14 @@ public class AuthenticationEventListener {
 
         loginAttemptService.recordSuccessfulLogin(
                 event.getAuthentication().getName()
+        );
+        auditService.record(
+                "LOGIN_SUCCESS",
+                event.getAuthentication().getName(),
+                "USER",
+                event.getAuthentication().getName(),
+                "SUCCESS",
+                null
         );
     }
 }

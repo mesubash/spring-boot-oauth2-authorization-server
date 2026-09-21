@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import io.github.mesubash.springbootoauth2authorizationserver.audit.service.SecurityAuditService;
 import io.github.mesubash.springbootoauth2authorizationserver.client.dto.*;
 import io.github.mesubash.springbootoauth2authorizationserver.client.model.OAuthClientType;
 import io.github.mesubash.springbootoauth2authorizationserver.client.repository.OAuthClientManagementRepository;
@@ -36,13 +37,15 @@ public class OAuthClientService {
     private final TokenSettings tokenSettings;
     private final OAuthClientManagementRepository managementRepository;
     private final OAuthScopeService scopeService;
+    private final SecurityAuditService auditService;
 
     public OAuthClientService(
             RegisteredClientRepository registeredClientRepository,
             PasswordEncoder passwordEncoder,
             TokenSettings tokenSettings,
             OAuthClientManagementRepository managementRepository,
-            OAuthScopeService scopeService
+            OAuthScopeService scopeService,
+            SecurityAuditService auditService
     ) {
         this.registeredClientRepository =
                 registeredClientRepository;
@@ -51,6 +54,7 @@ public class OAuthClientService {
         this.tokenSettings = tokenSettings;
         this.managementRepository = managementRepository;
         this.scopeService = scopeService;
+        this.auditService = auditService;
     }
 
     public OAuthClientCreatedResponse create(
@@ -139,6 +143,13 @@ public class OAuthClientService {
 
         registeredClientRepository.save(
                 registeredClient
+        );
+        auditService.record(
+                "OAUTH_CLIENT_CREATED",
+                "OAUTH_CLIENT",
+                registeredClient.getClientId(),
+                "SUCCESS",
+                registeredClient.getClientName()
         );
 
         return new OAuthClientCreatedResponse(
@@ -281,6 +292,13 @@ public class OAuthClientService {
                         .build();
 
         registeredClientRepository.save(updated);
+        auditService.record(
+                "OAUTH_CLIENT_UPDATED",
+                "OAUTH_CLIENT",
+                updated.getClientId(),
+                "SUCCESS",
+                updated.getClientName()
+        );
 
         return toResponse(updated);
     }
@@ -339,6 +357,13 @@ public class OAuthClientService {
                     "Failed to rotate OAuth client secret"
             );
         }
+        auditService.record(
+                "OAUTH_CLIENT_SECRET_ROTATED",
+                "OAUTH_CLIENT",
+                client.getClientId(),
+                "SUCCESS",
+                null
+        );
 
         return new OAuthClientSecretResponse(
                 client.getClientId(),
@@ -372,5 +397,12 @@ public class OAuthClientService {
                     "Failed to delete OAuth client"
             );
         }
+        auditService.record(
+                "OAUTH_CLIENT_DELETED",
+                "OAUTH_CLIENT",
+                client.getClientId(),
+                "SUCCESS",
+                client.getClientName()
+        );
     }
 }
