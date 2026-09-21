@@ -108,7 +108,24 @@ public class DevelopmentDataInitializer implements ApplicationRunner {
 
     private void initializeDemoClient() {
 
-        if (registeredClientRepository.findByClientId("demo-client") != null) {
+        RegisteredClient existing =
+                registeredClientRepository
+                        .findByClientId("demo-client");
+
+        if (existing != null) {
+
+            if (!existing.getScopes()
+                    .contains(OidcScopes.EMAIL)) {
+
+                RegisteredClient updated =
+                        RegisteredClient
+                                .from(existing)
+                                .scope(OidcScopes.EMAIL)
+                                .build();
+
+                registeredClientRepository.save(updated);
+            }
+
             return;
         }
 
@@ -141,6 +158,7 @@ public class DevelopmentDataInitializer implements ApplicationRunner {
 
                 .scope(OidcScopes.OPENID)
                 .scope(OidcScopes.PROFILE)
+                .scope(OidcScopes.EMAIL)
                 .scope("read")
                 .scope("write")
 

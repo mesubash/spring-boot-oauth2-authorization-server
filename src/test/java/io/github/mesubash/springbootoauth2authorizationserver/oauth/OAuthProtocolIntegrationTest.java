@@ -568,5 +568,313 @@ class OAuthProtocolIntegrationTest {
         assertThat(newRefreshToken)
                 .isNotEqualTo(refreshToken);
     }
+    @Test
+    void shouldIntrospectActiveAccessToken()
+            throws Exception {
+
+        TestClient client =
+                createTestClient();
+
+        String verifier =
+                generateCodeVerifier();
+
+        String challenge =
+                generateCodeChallenge(verifier);
+
+        String code =
+                authorize(
+                        client,
+                        challenge
+                );
+
+        MvcResult tokenResult =
+                mockMvc.perform(
+                                tokenRequest(
+                                        client,
+                                        code,
+                                        verifier
+                                )
+                        )
+                        .andExpect(
+                                status().isOk()
+                        )
+                        .andReturn();
+
+        String tokenResponse =
+                tokenResult
+                        .getResponse()
+                        .getContentAsString();
+
+        String accessToken =
+                JsonPath.read(
+                        tokenResponse,
+                        "$.access_token"
+                );
+
+
+        mockMvc.perform(
+                        post("/oauth2/introspect")
+
+                                .with(
+                                        httpBasic(
+                                                client.clientId(),
+                                                client.clientSecret()
+                                        )
+                                )
+
+                                .contentType(
+                                        MediaType.APPLICATION_FORM_URLENCODED
+                                )
+
+                                .param(
+                                        "token",
+                                        accessToken
+                                )
+
+                                .param(
+                                        "token_type_hint",
+                                        "access_token"
+                                )
+                )
+
+                .andExpect(
+                        status().isOk()
+                )
+
+                .andExpect(
+                        jsonPath("$.active")
+                                .value(true)
+                );
+    }
+    @Test
+    void shouldRevokeAccessToken()
+            throws Exception {
+
+        TestClient client =
+                createTestClient();
+
+        String verifier =
+                generateCodeVerifier();
+
+        String challenge =
+                generateCodeChallenge(verifier);
+
+        String code =
+                authorize(
+                        client,
+                        challenge
+                );
+
+
+        MvcResult tokenResult =
+                mockMvc.perform(
+                                tokenRequest(
+                                        client,
+                                        code,
+                                        verifier
+                                )
+                        )
+
+                        .andExpect(
+                                status().isOk()
+                        )
+
+                        .andReturn();
+
+
+        String tokenResponse =
+                tokenResult
+                        .getResponse()
+                        .getContentAsString();
+
+        String accessToken =
+                JsonPath.read(
+                        tokenResponse,
+                        "$.access_token"
+                );
+
+
+        /*
+         * Revoke token.
+         */
+        mockMvc.perform(
+                        post("/oauth2/revoke")
+
+                                .with(
+                                        httpBasic(
+                                                client.clientId(),
+                                                client.clientSecret()
+                                        )
+                                )
+
+                                .contentType(
+                                        MediaType.APPLICATION_FORM_URLENCODED
+                                )
+
+                                .param(
+                                        "token",
+                                        accessToken
+                                )
+
+                                .param(
+                                        "token_type_hint",
+                                        "access_token"
+                                )
+                )
+
+                .andExpect(
+                        status().isOk()
+                );
+
+
+        /*
+         * Introspection now reports inactive.
+         */
+        mockMvc.perform(
+                        post("/oauth2/introspect")
+
+                                .with(
+                                        httpBasic(
+                                                client.clientId(),
+                                                client.clientSecret()
+                                        )
+                                )
+
+                                .contentType(
+                                        MediaType.APPLICATION_FORM_URLENCODED
+                                )
+
+                                .param(
+                                        "token",
+                                        accessToken
+                                )
+
+                                .param(
+                                        "token_type_hint",
+                                        "access_token"
+                                )
+                )
+
+                .andExpect(
+                        status().isOk()
+                )
+
+                .andExpect(
+                        jsonPath("$.active")
+                                .value(false)
+                );
+    }
+    @Test
+    void shouldRejectRevokedRefreshToken()
+            throws Exception {
+
+        TestClient client =
+                createTestClient();
+
+        String verifier =
+                generateCodeVerifier();
+
+        String challenge =
+                generateCodeChallenge(verifier);
+
+        String code =
+                authorize(
+                        client,
+                        challenge
+                );
+
+
+        MvcResult tokenResult =
+                mockMvc.perform(
+                                tokenRequest(
+                                        client,
+                                        code,
+                                        verifier
+                                )
+                        )
+
+                        .andExpect(
+                                status().isOk()
+                        )
+
+                        .andReturn();
+
+
+        String tokenResponse =
+                tokenResult
+                        .getResponse()
+                        .getContentAsString();
+
+        String refreshToken =
+                JsonPath.read(
+                        tokenResponse,
+                        "$.refresh_token"
+                );
+
+
+        mockMvc.perform(
+                        post("/oauth2/revoke")
+
+                                .with(
+                                        httpBasic(
+                                                client.clientId(),
+                                                client.clientSecret()
+                                        )
+                                )
+
+                                .contentType(
+                                        MediaType.APPLICATION_FORM_URLENCODED
+                                )
+
+                                .param(
+                                        "token",
+                                        refreshToken
+                                )
+
+                                .param(
+                                        "token_type_hint",
+                                        "refresh_token"
+                                )
+                )
+
+                .andExpect(
+                        status().isOk()
+                );
+
+
+        mockMvc.perform(
+                        post("/oauth2/token")
+
+                                .with(
+                                        httpBasic(
+                                                client.clientId(),
+                                                client.clientSecret()
+                                        )
+                                )
+
+                                .contentType(
+                                        MediaType.APPLICATION_FORM_URLENCODED
+                                )
+
+                                .param(
+                                        "grant_type",
+                                        "refresh_token"
+                                )
+
+                                .param(
+                                        "refresh_token",
+                                        refreshToken
+                                )
+                )
+
+                .andExpect(
+                        status().isBadRequest()
+                )
+
+                .andExpect(
+                        jsonPath("$.error")
+                                .value("invalid_grant")
+                );
+    }
 
 }

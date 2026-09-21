@@ -5,7 +5,9 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import io.github.mesubash.springbootoauth2authorizationserver.security.ActiveAuthorizationFilter;
 import io.github.mesubash.springbootoauth2authorizationserver.security.PemKeyLoader;
+import io.github.mesubash.springbootoauth2authorizationserver.user.service.OidcUserClaimsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -21,6 +23,7 @@ import org.springframework.security.config.annotation.web.configuration.OAuth2Au
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.*;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
@@ -32,6 +35,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.oauth2.server.resource.authentication.DelegatingJwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -41,6 +45,7 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -224,28 +229,58 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
-    public OAuth2TokenCustomizer<JwtEncodingContext> jwtTokenCustomizer() {
+    public OAuth2TokenCustomizer<JwtEncodingContext> jwtTokenCustomizer(
+            OidcUserClaimsService oidcUserClaimsService
+    ) {
         return context -> {
 
-            if (!OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+            /*
+             * Access token
+             */
+            if (OAuth2TokenType.ACCESS_TOKEN.equals(
+                    context.getTokenType()
+            )) {
+
+                Set<String> roles = context
+                        .getPrincipal()
+                        .getAuthorities()
+                        .stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .filter(authority ->
+                                authority.startsWith("ROLE_")
+                        )
+                        .map(authority ->
+                                authority.substring(
+                                        "ROLE_".length()
+                                )
+                        )
+                        .collect(Collectors.toSet());
+
+                context.getClaims()
+                        .claim("roles", roles);
+
                 return;
             }
 
-            Set<String> roles = context
-                    .getPrincipal()
-                    .getAuthorities()
-                    .stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .filter(authority ->
-                            authority.startsWith("ROLE_")
-                    )
-                    .map(authority ->
-                            authority.substring("ROLE_".length())
-                    )
-                    .collect(Collectors.toSet());
 
-            context.getClaims()
-                    .claim("roles", roles);
+            /*
+             * OpenID Connect ID Token
+             */
+            if (OidcParameterNames.ID_TOKEN.equals(
+                    context.getTokenType().getValue()
+            )) {
+
+                Map<String, Object> userClaims =
+                        oidcUserClaimsService.loadClaims(
+                                context.getPrincipal().getName(),
+                                context.getAuthorizedScopes()
+                        );
+
+                context.getClaims()
+                        .claims(claims ->
+                                claims.putAll(userClaims)
+                        );
+            }
         };
     }
 
@@ -278,7 +313,8 @@ public class AuthorizationServerConfig {
     @Order(2)
     public SecurityFilterChain adminApiSecurityFilterChain(
             HttpSecurity http,
-            JwtAuthenticationConverter jwtAuthenticationsConverter
+            JwtAuthenticationConverter jwtAuthenticationsConverter,
+            OAuth2AuthorizationService authorizationService
     ) throws Exception {
 
         http
@@ -303,6 +339,12 @@ public class AuthorizationServerConfig {
 
                 .csrf(csrf ->
                         csrf.disable()
+                )
+                .addFilterAfter(
+                        new ActiveAuthorizationFilter(
+                                authorizationService
+                        ),
+                        BearerTokenAuthenticationFilter.class
                 )
 
                 .oauth2ResourceServer(oauth2 ->
