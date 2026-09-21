@@ -10,21 +10,48 @@
     </parent>
     <groupId>io.github.mesubash</groupId>
     <artifactId>spring-boot-oauth2-authorization-server</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>spring-boot-oauth2-authorization-server</name>
-    <description>spring-boot-oauth2-authorization-server</description>
-    <url/>
+    <version>1.0.0</version>
+    <name>Spring Boot OAuth2 Authorization Server</name>
+
+    <description>
+        Production-oriented OAuth 2.1 and OpenID Connect authorization server template built with Spring Boot and Spring Security
+    </description>
+
+    <url>
+        https://github.com/mesubash/spring-boot-oauth2-authorization-server
+    </url>
     <licenses>
-        <license/>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <id>mesubash</id>
+            <name>Subash Singh Dhami</name>
+            <url>https://github.com/mesubash</url>
+            <roles>
+                <role>Developer</role>
+                <role>Maintainer</role>
+            </roles>
+        </developer>
     </developers>
     <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>
+            scm:git:https://github.com/mesubash/spring-boot-oauth2-authorization-server.git
+        </connection>
+
+        <developerConnection>
+            scm:git:ssh://git@github.com/mesubash/spring-boot-oauth2-authorization-server.git
+        </developerConnection>
+
+        <url>
+            https://github.com/mesubash/spring-boot-oauth2-authorization-server
+        </url>
+
+        <tag>HEAD</tag>
     </scm>
     <properties>
         <java.version>25</java.version>
